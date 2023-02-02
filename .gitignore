@@ -1,0 +1,6 @@
+.pio
+.vscode/
+python/
+a
+b
+*.sh
