@@ -28,6 +28,7 @@
 /* USER CODE BEGIN Includes */
 #include <stdio.h>
 #include <stdlib.h>
+#include "commands.h"
 /* USER CODE END Includes */
 
 /* Private typedef -----------------------------------------------------------*/
@@ -72,43 +73,14 @@ void toggleYellow() { HAL_GPIO_TogglePin(LED_YELLOW_GPIO_Port, LED_YELLOW_Pin); 
 // #define HUART2_BUF_SIZE 256
 #define HUART2_BUF_SIZE 16
 #define READ_BUF_SIZE 16384
-uint8_t* huart2_buf;
-uint8_t* read_buf;
-// uint8_t* read_buf_start;
+
+uint8_t huart2_buf[HUART2_BUF_SIZE];
 uint8_t read_buf_start[READ_BUF_SIZE];
+uint8_t* read_buf; // pointer to current location in read_buf_start
 UART_HandleTypeDef huart2;
 DMA_HandleTypeDef hdma_usart2_rx;
 
 volatile uint8_t init_byte_received = 0;
-
-uint8_t const priv_key[4] = {
-  0x00,
-  0x00,
-  0x00,
-  0x00
-};
-
-uint8_t handshake[8] = {
-  0x50,
-  0xAB,
-  0xF3,
-  0xE5,
-  0x00,
-  0x00,
-  0x00,
-  0x00
-};
-
-uint8_t request[8] = {
-  0x8A,
-  0xAB,
-  0x00,
-  0x00,
-  0x00,
-  0x00,
-  0x00,
-  0x00
-};
 
 typedef enum _action {
   NONE,
@@ -116,24 +88,22 @@ typedef enum _action {
   CHECK_DEFAULT_PARAM,
   INIT_SESH_ID,
   VALIDATE_SESH_ID,
+  SEND_DS_DATA
 } action;
+action next_action = NONE;
+action prev_action = NONE;
 
 uint8_t session_id[4] = { 0x0, 0x0, 0x0, 0x0 };
 
-action next_action = NONE;
-action prev_action = NONE;
 uint32_t global_idx = 0;
 uint32_t next_process = 0;
 
 uint16_t calculate_checksum(uint8_t* bytes, uint32_t len) {
-  for (int i = 0; i < 4; i += 1) {
-    bytes[i+4] = session_id[i] ^ 0xAA;
-  }
   uint32_t sum = 0;
   for (int i = 0; i < len; i++) {
     // bytes 2 and 3 are actually the checksums themselves -- don't
     // include in calculation.
-		uint16_t byte = (i == 2 || i == 3) ? 0x00 : 0xAA ^ bytes[i];
+		uint16_t byte = (i == 2 || i == 3) ? 0x00 : bytes[i];
 		
 		if (!(i & 1))
 			byte <<= 8;
@@ -143,12 +113,27 @@ uint16_t calculate_checksum(uint8_t* bytes, uint32_t len) {
     sum = (uint16_t)sum + (sum >> 16);
   }
   sum += 2;
-  bytes[2] = 0xAA ^ (uint8_t)sum;
-  bytes[3] = 0xAA ^ (sum >> 8);
+  bytes[2] = (uint8_t)sum;
+  bytes[3] = (sum >> 8);
   return (uint16_t)sum;
 }
 
-uint8_t process(uint8_t byte) {
+void insert_session_id(uint8_t* bytes) {
+  for (int i = 0; i < 4; i += 1) {
+    bytes[i+4] = session_id[i] ^ 0xAA;
+  }
+}
+
+void send_bytes(uint8_t* bytes, uint32_t len) {
+  insert_session_id(bytes);
+  calculate_checksum(bytes, len);
+  HAL_Delay(2);
+  for (uint32_t i = 0; i < len; i += 1) 
+    bytes[i] = bytes[i] ^ 0xAA;
+  HAL_UART_Transmit_DMA(&huart2, bytes, len);
+}
+
+uint32_t process(uint8_t byte) {
   if (prev_action == NONE) {
     if (byte == 0xF8) {
       next_action = CHECK_DEFAULT_PARAM;
@@ -160,10 +145,11 @@ uint8_t process(uint8_t byte) {
   } 
 
   if (next_action == CHECK_DEFAULT_PARAM && byte == 0x02) {
-    init_byte_received = 99;
     if (prev_action == START) {
+      prev_action = CHECK_DEFAULT_PARAM;
       next_action = INIT_SESH_ID;
     } else {
+      prev_action = CHECK_DEFAULT_PARAM;
       next_action = VALIDATE_SESH_ID;
     }
     return 6;
@@ -172,14 +158,20 @@ uint8_t process(uint8_t byte) {
   if (next_action == INIT_SESH_ID) {
     uint8_t i = 0;
     for (uint8_t* p = read_buf - 4; p < read_buf; p += 1) {
-      session_id[i] = *p ^ handshake[i+4] ^ 0xAA;
+      session_id[i] = *p ^ handshake[i+4];
       i += 1;
     }
-    session_id[i-1] = byte ^ handshake[i-1+4] ^ 0xAA;
-    calculate_checksum(request, 8);
-    HAL_Delay(2);
-    HAL_UART_Transmit_DMA(&huart2, request, 8);
-    //HAL_Delay(500);
+    session_id[i-1] = byte ^ handshake[i-1+4];
+    send_bytes(request_user_data, 8);
+
+    prev_action = next_action;
+    next_action = SEND_DS_DATA;
+    
+    return 112;
+  }
+
+  if (next_action == SEND_DS_DATA) {
+    send_bytes(ping, 8);
   }
 
   return 0;
@@ -200,10 +192,8 @@ void copy(uint8_t* dest, uint8_t* src, size_t size) {
 volatile uint8_t copy_buf_fl = 0;
 void HAL_UART_RxCpltCallback(UART_HandleTypeDef *huart)
 {
-  if (!init_byte_received) {
-    if (huart2_buf[0] == 0x56) {
-      init_byte_received = 1;
-    }
+  if (!init_byte_received && huart2_buf[0] == 0x56 /* 0x56 ^ 0xAA = 0xFC */) {
+    init_byte_received = 1;
   } 
   else {
     copy_buf_fl = 1;
@@ -260,9 +250,13 @@ int main(void)
   MX_USB_OTG_HS_USB_Init();
   MX_USART2_UART_Init();
   /* USER CODE BEGIN 2 */
-  huart2_buf = malloc(HUART2_BUF_SIZE);
   read_buf = read_buf_start;
-  // HAL_UART_Receive_DMA(&huart2, huart2_buf, HUART2_BUF_SIZE);
+
+  // Bootstrap the receiving of bytes by waiting for
+  // an 0xFC byte from the pokewalker via an
+  // interrupt based UART receive.
+  // HAL_UART_RxCpltCallback will be called
+  // upon receiving the first byte.
   HAL_UART_Receive_IT(&huart2, huart2_buf, 1);
   /* USER CODE END 2 */
 
@@ -284,11 +278,10 @@ int main(void)
     }
 
     if (init_byte_received == 1) {
-      HAL_Delay(2);
-      HAL_UART_Transmit_DMA(&huart2, handshake, sizeof(handshake));
-      if (init_byte_received == 1) {
-        HAL_UART_Receive_DMA(&huart2, huart2_buf, HUART2_BUF_SIZE);
-      }
+      send_bytes(handshake, sizeof(handshake));
+      // HAL_Delay(2);
+      // HAL_UART_Transmit_DMA(&huart2, handshake, sizeof(handshake));
+      HAL_UART_Receive_DMA(&huart2, huart2_buf, HUART2_BUF_SIZE);
       init_byte_received += 1;
     }
 
@@ -297,7 +290,7 @@ int main(void)
         printf("id[%d]: %02X\n", i, session_id[i]);
       }
       for (uint8_t* p = read_buf_start; p < read_buf; p += 1) {
-        printf("%02X  %02X\n", *p, *p ^ 0xAA);
+        printf("%03d  %02X  %02X\n", (p - read_buf_start), *p, *p ^ 0xAA);
       }
       should_print = 0;
     }
@@ -383,6 +376,7 @@ void Error_Handler(void)
   __disable_irq();
   while (1)
   {
+    printf("Error_Handler called!\n");
   }
   /* USER CODE END Error_Handler_Debug */
 }
