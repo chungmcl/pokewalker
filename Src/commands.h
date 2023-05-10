@@ -1,5 +1,55 @@
 #include "stm32h7xx_hal.h"
 
+struct PokemonSummary {         // LE
+  uint16_t species;
+  uint16_t heldItem;
+  uint16_t moves[4];
+  uint8_t level;
+  uint8_t variantAndFlags;      // low 5 bits are variant (for unown, spinda, arceus, etc). mask 0x20 = female
+  uint8_t moreFlags;            // 0x02 = shiny, 0x01 = has form
+  uint8_t padding;
+};
+
+struct EventPokeExtraData {     // LE
+  uint32_t unk_0;               // unknown 0
+  uint16_t originalTrainerTID; 
+  uint16_t originalTrainerSID; 
+  uint16_t unk_1;
+  uint16_t locationMet;
+  uint16_t unk_2;
+  uint16_t originalTrainerName[8];
+  uint8_t  encounterType;
+  uint8_t  ability;
+  uint16_t pokeballType;        // as item number
+  uint8_t  unk[10];
+};
+
+
+uint8_t write_pokemon_summary[9] = {
+  0x0A,
+  0xBA, // high byte
+  0x00,
+  0x00,
+
+  0x00,
+  0x00,
+  0x00,
+  0x00,
+
+  0x44 // low byte
+};
+
+uint8_t gift_pokemon[8] = {
+  0xC2,
+  0x01,
+  0x00,
+  0x00,
+  0x00,
+  0x00,
+  0x00,
+  0x00
+};
+
 uint8_t handshake[8] = {
   0xFA,
   0x01,
@@ -138,12 +188,12 @@ uint8_t ds_data[112] = {
 };
 
 uint8_t ping[8] = {
-  0xD2,
+  0x56,
   0x01,
-  0xAA,
-  0xAA,
-  0xAA,
-  0xAA,
-  0xAA,
-  0xAA
+  0x00,
+  0x00,
+  0x00,
+  0x00,
+  0x00,
+  0x00
 };

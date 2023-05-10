@@ -88,7 +88,9 @@ typedef enum _action {
   CHECK_DEFAULT_PARAM,
   INIT_SESH_ID,
   VALIDATE_SESH_ID,
-  SEND_DS_DATA
+  WRITE_POKEMON_SUMMARY,
+  WRITE_EXTRA_DATA,
+  GIFT_POKEMON
 } action;
 action next_action = NONE;
 action prev_action = NONE;
@@ -98,7 +100,7 @@ uint8_t session_id[4] = { 0x0, 0x0, 0x0, 0x0 };
 uint32_t global_idx = 0;
 uint32_t next_process = 0;
 
-uint16_t calculate_checksum(uint8_t* bytes, uint32_t len) {
+uint16_t calculate_and_insert_checksum(uint8_t* bytes, uint32_t len) {
   uint32_t sum = 0;
   for (int i = 0; i < len; i++) {
     // bytes 2 and 3 are actually the checksums themselves -- don't
@@ -126,13 +128,14 @@ void insert_session_id(uint8_t* bytes) {
 
 void send_bytes(uint8_t* bytes, uint32_t len) {
   insert_session_id(bytes);
-  calculate_checksum(bytes, len);
+  calculate_and_insert_checksum(bytes, len);
   HAL_Delay(2);
   for (uint32_t i = 0; i < len; i += 1) 
     bytes[i] = bytes[i] ^ 0xAA;
   HAL_UART_Transmit_DMA(&huart2, bytes, len);
 }
 
+// return the number of bytes expected from the walker after sending something
 uint32_t process(uint8_t byte) {
   if (prev_action == NONE) {
     if (byte == 0xF8) {
@@ -165,13 +168,82 @@ uint32_t process(uint8_t byte) {
     send_bytes(request_user_data, 8);
 
     prev_action = next_action;
-    next_action = SEND_DS_DATA;
+    next_action = WRITE_POKEMON_SUMMARY;
     
     return 112;
   }
 
-  if (next_action == SEND_DS_DATA) {
-    send_bytes(ping, 8);
+  if (next_action == WRITE_POKEMON_SUMMARY) {
+    struct PokemonSummary summary; // 128 bytes
+    // printf("%d\n", sizeof(struct PokemonSummary));
+    // summary.species = 393; // piplup
+    // summary.species = 491; // darkrai
+    summary.species = 384; // rayquaza
+    summary.heldItem = 0;
+    summary.moves[0] = 0;
+    summary.moves[1] = 0;
+    summary.moves[2] = 0;
+    summary.moves[3] = 0;
+    summary.level = 70;
+    summary.variantAndFlags = 0;
+    summary.moreFlags = 0x02; // 0x02 = shiny
+    summary.padding = 0;
+
+    #define cmd_bytes 9
+    #define data_bytes 16
+    //uint8_t to_send[cmd_bytes + data_bytes];
+    uint8_t* to_send = malloc(cmd_bytes + data_bytes);
+    for (int i = 0; i < cmd_bytes; i += 1) to_send[i] = write_pokemon_summary[i];
+    uint8_t* summary_raw = (uint8_t*)&summary;
+    for (int i = 0; i < data_bytes; i += 1) {
+      // printf("%02X\n", *(summary_raw + i));
+      to_send[i + cmd_bytes] = *(summary_raw + i);
+    }
+    // for (int i = 0; i < (cmd_bytes + data_bytes); i += 1) printf("%02X\n", to_send[i]);
+    send_bytes(to_send, cmd_bytes + data_bytes);
+
+    prev_action = next_action;
+    next_action = GIFT_POKEMON;
+
+    return 8;
+  }
+
+  if (next_action == GIFT_POKEMON) {
+    send_bytes(gift_pokemon, 8);
+
+    prev_action = next_action;
+    next_action = NONE;
+    return 8;
+  }
+
+  if (next_action == WRITE_EXTRA_DATA) {
+    // Directly gifting an event pokemon
+    // First, write a properly-filled out struct PokemonSummary to EEPROM:0xBA44. The pokemon may be shiny. This will work.
+    //
+    // Then, a properly-filled-out struct EventPokeExtraData to EEPROM:BA54. Here you have achance to customize the 
+    // "original trainer" name and IDs, the "Location met", pokemon's ability, and the pokeball type it is to be contained in. 
+    //
+    // Next, you'll need to provide a 32x24 2-frame animation for the pokemon for the walker to show. Upload it (0x180 bytes) to EEPROM:0xBA80. 
+    // And finally, render the pokemon's name as a 2bpp 80x16 image, and upload it (0x140 bytes) to EEPROM:0xBC00. 
+    //
+    // Then simply send CMD_C2. 
+    //
+    // The game will show a cool animation of a pokemon dropping in from nowhere. A special light-grey pokeball icon will be shown in the inventory screen. 
+    // The pokemon does not occupy the space of the 3 radar-found pokemon. The event log will show a pokemon appearing out of nowhere. 
+    // The DS will also say that the pokemon is happy to have found such a rare pokemon.
+
+    struct EventPokeExtraData extra;
+    extra.unk_0 = 0;
+    extra.originalTrainerTID = 0;
+    extra.originalTrainerSID = 0;
+    extra.unk_1 = 0;
+    extra.locationMet = 0;
+    extra.unk_2 = 0;
+    for (int i = 0; i < 8; i += 1) extra.originalTrainerName[i] = 0;
+    extra.encounterType = 0;
+    extra.ability = 0;
+    extra.pokeballType = 0;
+    for (int i = 0; i < 10; i += 1) extra.unk[i] = 0;
   }
 
   return 0;
@@ -287,7 +359,7 @@ int main(void)
 
     if (should_print) {
       for (int i = 0; i < 4; i += 1) {
-        printf("id[%d]: %02X\n", i, session_id[i]);
+        printf("id[%d]: %02X  %02X\n", i, session_id[i] ^ 0xAA, session_id[i]);
       }
       for (uint8_t* p = read_buf_start; p < read_buf; p += 1) {
         printf("%03d  %02X  %02X\n", (p - read_buf_start), *p, *p ^ 0xAA);
