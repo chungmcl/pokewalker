@@ -1,33 +1,49 @@
 #include "stm32h7xx_hal.h"
 
-struct PokemonSummary {         // LE
-  uint16_t species;
-  uint16_t heldItem;
-  uint16_t moves[4];
+// little-endian
+typedef struct {
+  uint16_t pokedex_number;              // https://bulbapedia.bulbagarden.net/wiki/List_of_Pokémon_by_index_number_(Generation_IV)
+  uint16_t held_item;                   // https://bulbapedia.bulbagarden.net/wiki/List_of_items_by_index_number_(Generation_IV)
+  uint16_t moves[4];                    // https://bulbapedia.bulbagarden.net/wiki/List_of_moves
   uint8_t level;
-  uint8_t variantAndFlags;      // low 5 bits are variant (for unown, spinda, arceus, etc). mask 0x20 = female
-  uint8_t moreFlags;            // 0x02 = shiny, 0x01 = has form
+  uint8_t variant;                      // low 5 bits are variant (for unown, spinda, arceus, etc). mask 0x20 = female
+  uint8_t flags;                        // 0x02 = shiny
   uint8_t padding;
-};
+} Pokemon;
 
-struct EventPokeExtraData {     // LE
+// little-endian
+typedef struct {
   uint32_t unk_0;               // unknown 0
-  uint16_t originalTrainerTID; 
-  uint16_t originalTrainerSID; 
+  uint16_t original_trainer_TID; // trainer id
+  uint16_t original_trainer_SID; // secret id
   uint16_t unk_1;
-  uint16_t locationMet;
+  uint16_t location_met;
   uint16_t unk_2;
-  uint16_t originalTrainerName[8];
-  uint8_t  encounterType;
-  uint8_t  ability;
-  uint16_t pokeballType;        // as item number
+  uint16_t original_trainer_name[8];    // https://bulbapedia.bulbagarden.net/wiki/Character_encoding_(Generation_III); doesn't work
+  uint8_t  encounter_type;
+  uint8_t  ability;                     // https://bulbapedia.bulbagarden.net/wiki/Ability; works
+  uint16_t pokeball_type;               // https://bulbapedia.bulbagarden.net/wiki/List_of_items_by_index_number_(Generation_IV); works
   uint8_t  unk[10];
+} PokemonExtraParameters;
+
+
+uint8_t write_pokemon[9] = {
+  0x0A,
+  0xBA, // high byte of dest address in EEPROM
+  0x00,
+  0x00,
+
+  0x00,
+  0x00,
+  0x00,
+  0x00,
+
+  0x44 // low byte of dest address in EEPROM
 };
 
-
-uint8_t write_pokemon_summary[9] = {
+uint8_t write_pokemon_extra_data[9] = {
   0x0A,
-  0xBA, // high byte
+  0xBA, // high byte of dest address in EEPROM
   0x00,
   0x00,
 
@@ -36,7 +52,7 @@ uint8_t write_pokemon_summary[9] = {
   0x00,
   0x00,
 
-  0x44 // low byte
+  0x54 // low byte of dest address in EEPROM
 };
 
 uint8_t gift_pokemon[8] = {

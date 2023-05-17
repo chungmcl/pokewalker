@@ -82,7 +82,7 @@ DMA_HandleTypeDef hdma_usart2_rx;
 
 volatile uint8_t init_byte_received = 0;
 
-typedef enum _action {
+typedef enum {
   NONE,
   START,
   CHECK_DEFAULT_PARAM,
@@ -135,7 +135,7 @@ void send_bytes(uint8_t* bytes, uint32_t len) {
   HAL_UART_Transmit_DMA(&huart2, bytes, len);
 }
 
-// return the number of bytes expected from the walker after sending something
+// return the number of bytes of the reply expected from the walker after sending something
 uint32_t process(uint8_t byte) {
   if (prev_action == NONE) {
     if (byte == 0xF8) {
@@ -174,33 +174,68 @@ uint32_t process(uint8_t byte) {
   }
 
   if (next_action == WRITE_POKEMON_SUMMARY) {
-    struct PokemonSummary summary; // 128 bytes
+    Pokemon poke; // 128 bytes
     // printf("%d\n", sizeof(struct PokemonSummary));
-    // summary.species = 393; // piplup
-    // summary.species = 491; // darkrai
-    summary.species = 384; // rayquaza
-    summary.heldItem = 0;
-    summary.moves[0] = 0;
-    summary.moves[1] = 0;
-    summary.moves[2] = 0;
-    summary.moves[3] = 0;
-    summary.level = 70;
-    summary.variantAndFlags = 0;
-    summary.moreFlags = 0x02; // 0x02 = shiny
-    summary.padding = 0;
+    // poke.pokedex_number = 393;  // piplup
+    poke.pokedex_number = 25; // empoleon
+    poke.held_item = 229;    // everstone
+    poke.moves[0] = 413; // brave bird
+    poke.moves[1] = 407; // dragon rush
+    poke.moves[2] = 0;
+    poke.moves[3] = 0;
+    poke.level = 5;
+    poke.variant = 0;
+    poke.flags = 0b11111111; // 0x02 = shiny
+    poke.padding = 0;
 
     #define cmd_bytes 9
     #define data_bytes 16
-    //uint8_t to_send[cmd_bytes + data_bytes];
+
     uint8_t* to_send = malloc(cmd_bytes + data_bytes);
-    for (int i = 0; i < cmd_bytes; i += 1) to_send[i] = write_pokemon_summary[i];
-    uint8_t* summary_raw = (uint8_t*)&summary;
+    for (int i = 0; i < cmd_bytes; i += 1) to_send[i] = write_pokemon[i];
+    uint8_t* poke_raw = (uint8_t*)&poke;
     for (int i = 0; i < data_bytes; i += 1) {
-      // printf("%02X\n", *(summary_raw + i));
-      to_send[i + cmd_bytes] = *(summary_raw + i);
+      to_send[i + cmd_bytes] = *(poke_raw + i);
     }
-    // for (int i = 0; i < (cmd_bytes + data_bytes); i += 1) printf("%02X\n", to_send[i]);
     send_bytes(to_send, cmd_bytes + data_bytes);
+    free(to_send);
+
+    prev_action = next_action;
+    next_action = WRITE_EXTRA_DATA;
+
+    return 8;
+  }
+
+  if (next_action == WRITE_EXTRA_DATA) {
+    PokemonExtraParameters extra;
+    extra.unk_0 = 4;
+    extra.original_trainer_TID = 0;
+    extra.original_trainer_SID = 0;
+    extra.unk_1 = 4;
+    extra.location_met = 4;
+    extra.unk_2 = 4;
+    {
+      extra.original_trainer_name[0] = 0xBB00;
+      extra.original_trainer_name[1] = 0xBC00;
+      extra.original_trainer_name[2] = 0xBD00;
+    }
+    // for (int i = 0; i < 8; i += 1) extra.original_trainer_name[i] = 0;
+    extra.encounter_type = 0;
+    extra.ability = 105; // super luck
+    extra.pokeball_type = 16; // cherish ball
+    for (int i = 0; i < 10; i += 1) extra.unk[i] = 4;
+
+    #define cmd_bytes 9
+    #define data_bytes 44
+
+    uint8_t* to_send = malloc(cmd_bytes + data_bytes);
+    for (int i = 0; i < cmd_bytes; i += 1) to_send[i] = write_pokemon_extra_data[i];
+    uint8_t* extra_raw = (uint8_t*)&extra;
+    for (int i = 0; i < data_bytes; i += 1) {
+      to_send[i + cmd_bytes] = *(extra_raw + i);
+    }
+    send_bytes(to_send, cmd_bytes + data_bytes);
+    free(to_send);
 
     prev_action = next_action;
     next_action = GIFT_POKEMON;
@@ -208,42 +243,12 @@ uint32_t process(uint8_t byte) {
     return 8;
   }
 
-  if (next_action == GIFT_POKEMON) {
+    if (next_action == GIFT_POKEMON) {
     send_bytes(gift_pokemon, 8);
 
     prev_action = next_action;
     next_action = NONE;
     return 8;
-  }
-
-  if (next_action == WRITE_EXTRA_DATA) {
-    // Directly gifting an event pokemon
-    // First, write a properly-filled out struct PokemonSummary to EEPROM:0xBA44. The pokemon may be shiny. This will work.
-    //
-    // Then, a properly-filled-out struct EventPokeExtraData to EEPROM:BA54. Here you have achance to customize the 
-    // "original trainer" name and IDs, the "Location met", pokemon's ability, and the pokeball type it is to be contained in. 
-    //
-    // Next, you'll need to provide a 32x24 2-frame animation for the pokemon for the walker to show. Upload it (0x180 bytes) to EEPROM:0xBA80. 
-    // And finally, render the pokemon's name as a 2bpp 80x16 image, and upload it (0x140 bytes) to EEPROM:0xBC00. 
-    //
-    // Then simply send CMD_C2. 
-    //
-    // The game will show a cool animation of a pokemon dropping in from nowhere. A special light-grey pokeball icon will be shown in the inventory screen. 
-    // The pokemon does not occupy the space of the 3 radar-found pokemon. The event log will show a pokemon appearing out of nowhere. 
-    // The DS will also say that the pokemon is happy to have found such a rare pokemon.
-
-    struct EventPokeExtraData extra;
-    extra.unk_0 = 0;
-    extra.originalTrainerTID = 0;
-    extra.originalTrainerSID = 0;
-    extra.unk_1 = 0;
-    extra.locationMet = 0;
-    extra.unk_2 = 0;
-    for (int i = 0; i < 8; i += 1) extra.originalTrainerName[i] = 0;
-    extra.encounterType = 0;
-    extra.ability = 0;
-    extra.pokeballType = 0;
-    for (int i = 0; i < 10; i += 1) extra.unk[i] = 0;
   }
 
   return 0;
