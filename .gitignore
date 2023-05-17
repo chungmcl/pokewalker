@@ -1,8 +1,9 @@
-.pio
+.vscode/
 3ds/.vscode/
 stm32/.vscode/
 stm32/python/
 stm32/a
 stm32/b
+.pio
 *.sh
 .DS_Store
