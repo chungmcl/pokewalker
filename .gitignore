@@ -1,6 +1,8 @@
 .pio
-.vscode/
-python/
-a
-b
+3ds/.vscode/
+stm32/.vscode/
+stm32/python/
+stm32/a
+stm32/b
 *.sh
+.DS_Store
