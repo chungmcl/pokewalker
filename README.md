@@ -7,6 +7,6 @@ Firstly, credits to [Dmitry Grinberg](https://dmitry.gr/?r=05.Projects&proj=28.%
 The 3ds folder is the in-progress work of essentially porting a user-friendly version of the stm32 application, as a 3DS Homebrew application. It currently doesn't do anything useful besides printing out the raw bytes sent from the Pokewalker.
 
 ## stm32
-The stm32 folder contains the source of the app developed for the STM32 Nucleo STM32H723ZG ARM development board paired with the [MikroElektronika IrDA 3 click](https://www.mikroe.com/irda-3-click) breakout board through a breadboard. This application is currently in a working state, and is able to gift a user's Pokewalker a free shiny pokemon of their choice, with any held item, level, moveset, and ability they choose.
+The stm32 folder contains the source of the app developed for the [STM32 Nucleo STM32H723ZG](https://www.st.com/en/evaluation-tools/nucleo-h723zg.html) ARM development board paired with the [MikroElektronika IrDA 3 click](https://www.mikroe.com/irda-3-click) breakout board through a breadboard. This application is currently in a working state, and is able to gift a user's Pokewalker a free shiny pokemon of their choice, with any held item, level, moveset, and ability they choose.
 
 For those interested in building my code, my development environment for this app was VSCode + Platform.io + STM32CubeMX.
