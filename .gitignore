@@ -1,9 +1,7 @@
-.vscode/
-3ds/.vscode/
-stm32/.vscode/
+*.chungmcl
+*.x
+*.vscode/
 stm32/python/
-stm32/a
-stm32/b
-.pio
+.pio/
 *.sh
-.DS_Store
+*.DS_Store

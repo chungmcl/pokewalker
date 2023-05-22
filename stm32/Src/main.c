@@ -243,7 +243,7 @@ uint32_t process(uint8_t byte) {
     return 8;
   }
 
-    if (next_action == GIFT_POKEMON) {
+  if (next_action == GIFT_POKEMON) {
     send_bytes(gift_pokemon, 8);
 
     prev_action = next_action;
