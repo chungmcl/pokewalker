@@ -1,0 +1,12 @@
+*.chungmcl
+*.x
+*.vscode/
+**/build
+**/bin
+*.3dsx
+*.elf
+*.smdh
+stm32/python/
+.pio/
+*.sh
+*.DS_Store
