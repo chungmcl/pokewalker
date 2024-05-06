@@ -177,7 +177,9 @@ uint32_t process(uint8_t byte) {
     Pokemon poke; // 128 bytes
     // printf("%d\n", sizeof(struct PokemonSummary));
     // poke.pokedex_number = 393;  // piplup
-    poke.pokedex_number = 25; // empoleon
+    // poke.pokedex_number = 25; // empoleon
+    // poke.pokedex_number = 483; // dialga
+    poke.pokedex_number = 484; // palkia
     poke.held_item = 229;    // everstone
     poke.moves[0] = 413; // brave bird
     poke.moves[1] = 407; // dragon rush

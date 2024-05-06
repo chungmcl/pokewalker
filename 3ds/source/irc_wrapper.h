@@ -1,27 +1,10 @@
 #include <3ds.h>
 #include <3ds/services/ir.h>
 
-int IRCInit(u8 bitrate);
+u8* IRCInit(u8 bitrate);
 int IRCShutdown(void);
 int IRCSend(u8* data, u32 size);
-int IRCReceive(void* data, u32 bufferSize, u32* receivedSize, u32 timeout);
-static uint8_t crc8(const void* vptr, int len);
-
-typedef struct PACKED CCRCDCIrdaSmallPacketHeader
-{
-   //! Magic value (needs to be set to 0xa5)
-   uint8_t magic;
-   //! ID of the session (gets filled out by the DRC before transmitting the packet)
-   uint8_t sessionId;
-   /* bitfield swapped for little endian */
-   //! Size of the actual data
-   uint8_t dataSize : 6;
-   //! 0 for small packets
-   uint8_t isLarge : 1;
-   uint8_t unk : 1;
-   //! Amount of data which should be received from the other device
-   uint16_t receiveSize;
-} CCRCDCIrdaSmallPacketHeader;
+int IRCReceive(u32* actualReadSize, u32 readSize, u32 timeout, u8* out);
 
 typedef struct PACKED CCRCDCIrdaLargePacketHeader
 {

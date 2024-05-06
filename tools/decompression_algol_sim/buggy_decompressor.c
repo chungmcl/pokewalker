@@ -5,15 +5,21 @@
 #include <string.h>
 #include <math.h>
 #include <inttypes.h>
-
 #include "example_inputs.h"
+#include "chungmcl.h"
+
+#define TO_DECOMPRESS dmitrys_attack
+#define COMPRESSED_BUF_LEN 128
+
+// represents RAM
+uint8_t mem[4096];
 
 uint8_t* decompress(uint8_t* command, uint8_t command_len, uint8_t* decompressed_buf_len, uint64_t* __decompressed_buf_actual_len);
 
 int main(int argc, char** argv) {
   uint8_t decompressed_buf_len;
   uint64_t decompressed_buf_actual_len;
-  uint8_t* decompressed_buf = decompress(dmitrys_attack, sizeof(dmitrys_attack), &decompressed_buf_len, &decompressed_buf_actual_len);
+  uint8_t* decompressed_buf = decompress(TO_DECOMPRESS, sizeof(TO_DECOMPRESS), &decompressed_buf_len, &decompressed_buf_actual_len);
 
   for (int i = 0; i < decompressed_buf_actual_len; i += 1)
     printf("%04d %02X\n", i, decompressed_buf[i]);
@@ -22,10 +28,9 @@ int main(int argc, char** argv) {
   printf("Written Bytes (actual): %d\n", decompressed_buf_actual_len);
 }
 
-#define COMPRESSED_BUF_LEN 128
 uint8_t* decompress(uint8_t* command, uint8_t command_len, uint8_t* decompressed_buf_len, uint64_t* __decompressed_buf_actual_len) {
   if (command_len > COMPRESSED_BUF_LEN) return NULL;
-  uint8_t* mem = malloc(1000000); // represents RAM
+  // uint8_t* mem = malloc(1000000); // represents RAM
   for (int i = 0; i < command_len; i += 1) mem[i] = command[i];
 
   uint8_t* compressed_buf_start = mem;

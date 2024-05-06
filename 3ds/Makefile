@@ -7,6 +7,10 @@ $(error "Please set DEVKITARM in your environment. export DEVKITARM=<path to>dev
 endif
 
 TOPDIR ?= $(CURDIR)
+
+# Override the libctru to use own build
+CTRULIB := /Users/chungmcl/Projects/libctru/libctru
+
 include $(DEVKITARM)/3ds_rules
 
 #---------------------------------------------------------------------------------
@@ -64,7 +68,6 @@ LIBS	:= -lctru -lm
 # include and lib
 #---------------------------------------------------------------------------------
 LIBDIRS	:= $(CTRULIB)
-
 
 #---------------------------------------------------------------------------------
 # no real need to edit anything past this point unless you need to add additional

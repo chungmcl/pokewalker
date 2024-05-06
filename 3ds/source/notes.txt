@@ -1,0 +1,410 @@
+L_10a48c/svcConnectToPort
+
+L_105f74/svcCreateEvent
+
+L_1098bc/svcReplyAndReceive
+
+L_1098a4/svcAcceptSession
+
+L_105ac4/svcWaitSynchronization2
+
+L_10802c/MapMemoryBlock
+inr0=sharedmemctx inr1=handle inr2=sharedmemsize inr3=otherpermission insp0=mypermissions
+sharedmem vaddr is written to ctx+8.
+
+L_10458c/strlen
+
+L_1058ec/memcpy
+
+L_1060d8/throw_fatalerr
+
+L_10605c/sleepthread
+inr0/inr1=u64
+
+L_109c0c/init_srv
+handle is @ 0010d0d8
+
+L_109f2c/shutdown_srv
+
+L_109e2c/srv_isinitialized
+
+L_10a218/srv_RegisterClient
+
+L_10a254/srv_getprocsemaphore
+
+L_109d5c/srv_getprocsemaphore_wrap
+
+L_10a290/srv_cmdb
+inr0=u32*
+
+L_109e48/srv_RegisterService
+
+L_109ea4/srv_UnregisterService
+
+L_10a6e0/srv_GetServiceHandle
+
+L_109ef4/srv_cmd9
+inr0=?
+
+L_1044ec/GetServiceHandle
+
+L_1044c0/GetServiceHandle_lenwrap
+inr0=handle* inr1=service
+
+L_1082c0/nn::os::Thread::TryInitializeAndStartImpl(nn::os::Thread::TypeInfo const&, void (*)(unsigned int), void const*, unsigned int, int, int, bool)
+inr0=thread handle* inr2=thread entrypoint inr3= the two words from this buf are passed as inr0/inr1 when calling the entrypoint funcptr. insp0=? insp4=? insp8=? insp12=u8 ?
+when insp12 is non-zero, nn::os::Thread::CallDestructorAndExit will be called from nn::os::Thread::ThreadStart, with r0=insp0
+the word loaded from the r0 passed to nn::svc::CreateThread, is written to *inr0
+
+L_1083a8/TryInitializeAndStartImpl_wrap
+
+L_109a6c/init_localstorage180
+init the data @ thread localstorage +0x180.
+
+L_109ba0/ptms_init
+inits the ptm:s handle @ 0010d100, and copies this handle to 0010d0f0.
+
+L_1098e4/gpioIR_init
+L_10a16c()
+GetServiceHandle_lenwrap(0010d004, "i2c::IR")
+copy the handle @ 0010d004 to *0010d008.
+GetServiceHandle(0010d09c, "gpio:IR", ...)
+L_10a2d0(0x0010d15c, 0x0010d008, 0x0010d001)
+creates an event @ 0010d00c
+gpioIR_cmd9_wrap(0x0010d15c, 0x0010d00c)
+*0x0010d010 = 0x0010d15c
+when L_10a2d0() failed, u8 *(0010d010+4) = 1.
+
+L_1099f0/gpioIR_shutdown
+
+L_10a2d0
+return error if u8 *(inr0+11) != 0.
+inr0=0x0010d15c inr1=0x0010d008 inr2=0x0010d001
+*(inr0+16) = inr1, *(inr0+20) = inr2 (therefore, +16 = handle* for i2cIR)
+gpio_initmask()
+u8 *(inr0+11) = 1
+u8 *(inr0+8) = 0
+L_104684(inr0, L_104664(inr0))
+
+L_10aa24/gpio_initmask
+inr0=unused
+this is immediately before gpioIR_cmd6.
+gpioIR_cmd2(0x400, 0x400)
+gpioIR_cmd8(0, 0x400)
+gpioIR_cmd2(0, 0x800)
+gpioIR_cmd2(0, 0x80)
+gpioIR_cmd4(0, 0x80)
+gpioIR_cmd6(0x80, 0x80)
+
+L_104348/gpioIR_cmd8_wrap
+inr0=unused inr1=flag(0 = disable IR LED, 1 = enable IR LED)
+this is immediately before gpioIR_cmd8.
+r1=0x400.
+r0=0 when inr1==0, r0=0x400 otherwise.
+
+L_104360/gpioIR_cmd8
+inr0=? inr1=?
+cmdid = 00080080
+cmdbuf+4/+8 = inr0/inr1
+
+L_104398/gpioIR_cmd2_wrap400
+immediately before gpioIR_cmd2. r0 and r1 = 0x400.
+
+L_1043a4/gpioIR_cmd2
+inr0=? inr1=?
+cmdid = 00020080
+cmdbuf+4/+8 = inr0/inr1
+
+L_10863c/gpioIR_cmd7
+inr0=u32* out inr1=?
+cmdid = 00070040
+cmdbuf+4 = inr1
+
+L_10a73c/gpioIR_cmd9_wrap
+inr0=unused inr1=event handle*
+this is immediately before gpioIR_cmd9.
+r0=0x80, r1=*r1, r2=8
+
+L_10a74c/gpioIR_cmd9
+inr0=? inr1=event handle inr2=?
+cmdid is 00090082
+cmdbuf+4 = inr0, cmdbuf+8 = inr2, cmdbuf+12 = 0, cmdbuf+16 = inr1
+
+L_10a78c/gpioIR_cmda_wrap
+inr0=unused inr1=handle*
+immediately before gpioIR_cmda.
+r0=0x80, r1=*r1
+
+L_10a798/gpioIR_cmda
+inr0=? inr1=handle
+cmdid is 000a0042
++4 = inr0, +8 = 0, +12 = inr1
+
+L_10a9ec/gpioIR_cmd4
+inr0=? inr1=?
+cmdid is 00040080
+cmdbuf+4/+8 = inr0/inr1
+
+L_10aa74/gpioIR_cmd6
+inr0=? inr1=?
+cmdid 00060080
+cmdbuf+4/+8 = inr0/inr1
+
+L_108734/gpioIR_cmd7_wrap_x800
+this gets the recv IR bit value.
+gpioIR_cmd7(&stackval, 0x800);
+if(stackval<1)return 0;
+return stackval;
+
+L_100af8/iru_cmdhandler
+inr0=_this
+ir:u cmdhandler
+
+L_100e4c/iruser_cmdhandler
+inr0=_this
+ir:USER cmdhandler
+
+L_1016c0/iru_cmd1
+initialize.
+returns error if u8 *(0x0010d010+4) != 0.
+returns error if u8 *(0x0010d018+4) != 0.
+u8 *(0010d018+5) = 1
+u8 *(0010d018+6) = 0
+u8 *(0010d018+0) = 1
+creates events @ 0010d020 and 0010d024.
+uses a loop to create two events in the array @ 0010d038.
+*(0010d028+0) = 0, *(0010d028+4) = 0
+*(0010d198+0) = 0, *(0010d198+4) = 0, *(0010d198+12) = 0
+iru_cmd9(inr0, 6), return if this fails.
+writes value 1 to *0010d9b0 via a strx loop.
+*(0010d9b0+4) = 0, *(0010d9b0+8) = 0
+starts a thread, entrypoint is L_001022f0, thread handle* out is @ 0010d030.
+u8 *(0010d018+1) = 1
+u8 *(0010d018+2) = 0
+u8 *(0010d018+4) = 1
+
+L_102844/iru_cmd2
+shutdown
+
+L_1026cc/iru_cmd3
+inr0=_this inr1=inbuf inr2=size
+return error when u8 *(0010d010+4) != 0.
+return error when u8 *(0010d000) != 0.
+return error when u8 *(0010d018+5) != 1.
+size must be <=0x800.
+copies the inbuf with the input size to 0010d1b0.
+*(0010d028+0) = 0010d1b0, *(0010d028+4) = size.
+u8 *(0010d018+5) = 2
+u8 *(0010d018+2) = 0
+uses svcClearEvent() for various events, then signals the event @ 0010d020.
+
+L_101478/iru_cmd4
+return error when u8 *(0010d010+4) != 0.
+return error when u8 *(0010d000) != 0.
+return error when u8 *(0010d018+5) != 2.
+u8 *(0010d018+2) = 1.
+signals the event @ 0010d024.
+executes sleepthread(u64 1000) in a loop while waiting for u8 *(0010d018+5) == 1.
+*(0010d028+0) = 0, *(0010d028+4) = 0
+
+L_102054/iru_cmd5
+inr0=_this inr1=memoryblock handle from cmdbuf inr2=sharedmemsize inr3=datasize? insp0=u8
+...
+MapMemoryBlock(...)
+...
+0x0010d198+0 = sharedmem vaddr, +4 = datasize, +8 = u8 insp0, +12 = 0
+u8 *(0x10D018+5) = 3;
+u8 *(0x10D018+2) = 0;
+
+L_1034b8/iruser_cmd1
+insp12=bitrate val for L_105b90()
+initialize, starts a thread.
+
+L_102f90/iruser_cmd2
+shutdown
+
+L_106290/iru_cmd9
+inr0=state inr1=u8
+...
+calls L_105b90(inr1)
+...
+
+L_105b90
+inr0=value
+this sets the IR bitrate?
+switch statement: L_106714(*0x0010d010, convertedval); on fail write value 1 to u8 0010d010+4.
+
+L_102580/iru_cmdd
+*inr1 = *0x0010d038;
+return;
+
+L_1026b4/iru_cmde
+*inr1 = *(0x0010d038+4);
+return;
+
+L_102cd8/iru_cmd12
+inr0=state inr1=u8 input
+<state checks>
+this pokes the i2c IOState register bit0, and sets sleepmode state.
+when inr1==0, i2cIR_writereg_x58_bit0() and i2cIR_updatereg8_bitmask_0x10() are called with value 1. (same as i2cIR_setdatatransferend)
+otherwise when inr1!=0, those are called with value 0. (same as when starting a data send/recv transfer)
+
+L_001022f0/iru_thread
+waits for the event @ 0010d020 to be signaled via svcWaitSynchronization2.
+terminateflag = u8 *(0x10D018+1)
+this thread terminates when terminateflag=0.
+type = u8 *(0x10D018+5). once finished, the type is set to 1.
+type!=3: *(0x10D018+5) = 1.
+
+L_1059a0
+inr0=*0010d010
+
+L_102a68/IRu_senddata
+uses the buffer/size stuff @ 0010d028.
+calls IR_sendblock
+
+L_1058cc/IR_sendblock
+inr0=*0010d010 inr1=buffer inr2=chunksize
+i2cIR_cmd11(*(inr0+16), 13, 0, buffer, chunksize)
+
+L_1019ac/IRu_recvdata
+
+L_108510/i2cIR_cmd11
+inr0=handle* inr1=? inr2=? inr3=inbuffer insp0=size
+
+L_108568/i2cipc_cmd12
+inr0=handle* inr1=buf inr2=deviceid inr3=regaddr insp0=size
+
+L_1046a4/i2c_WriteRegister8
+inr0=handle* inr1=deviceid inr2=regaddr inr3=regdata
+
+L_1046ec/i2c_ReadRegister8
+inr0=handle* inr1=u8* out inr2=deviceid inr3=regaddr
+
+L_104664/i2cIR_readreg8
+returns the u8 read from i2c reg 0x8.
+
+L_104684/i2cIR_writereg8_bitmask_x10
+this is immediately before i2c_WriteRegister8().
+val = u8 *(inr0+8);
+if(val==0)val2 = inr1 & 0xef;//clear the 0x10 bitmask
+if(val)val2 = inr1 | 0x10;//otherwise, set the 0x10 bitmask
+i2c_WriteRegister8(*(inr0+16), 13, 8, val2);
+
+L_105e04/i2cIR_updatereg8_bitmask_0x10
+this sets the IER register bit4 sleepmode value to inr1. 
+if(*((u8*)(inr0+11)) == 0)return 0xd8210ff8;
+*((u8*)(inr0+8)) = inr1;
+i2cIR_writereg8_bitmask_x10(inr0, i2cIR_readreg8(inr0));
+
+L_105ae8/i2cIR_writereg_x58_bit0
+this sets the IOState register bit0 to the inr1 value.
+u8 *(inr0+7) = inr1;
+val2 = u8 *(inr0+6);
+if(inr1==0)val2 &= 0xfe;
+if(inr1)val2 |= 0x1;
+ret = i2c_WriteRegister8(*(inr0+16), 13, 0x58, val2);
+sleepthread(...);
+return ret;
+
+L_108754/i2cIR_readreg_x10
+returns the u8 read from register 0x10(IIR).
+
+L_105e60/i2cIR_IIR_getIRQ
+calls i2cIR_readreg_x10().
+returns 0 when no IRQ is pending.
+val = regval & 0x3f;
+if(val==2)return 1;//THR IRQ
+if(val==4)return 2;//RHR IRQ
+if(val==6)return 4;//"Receiver Line Status error"
+if(val==12)return 3;//"Receiver time-out interrupt"
+return 5;
+
+L_1059f4/i2cIR_setdatatransferend
+this is used once a data transfer is finished/aborted, called by iru_thread.
+ret = i2cIR_writeregs_x10_x10_x08_something();
+if(ret<0)
+{
+	*((u8*)(0x0010d010+4)) = 1;
+	return 0xf9610c02;
+}
+if(*((u8*)0x0010d018)==0)return;
+ret = i2cIR_writereg_x58_bit0(*0x0010d010, 1);
+if(ret<0)*((u8*)(0x0010d010+4)) = 1;
+ret = i2cIR_updatereg8_bitmask_0x10(*0x0010d010, 1);
+if(ret<0)
+{
+	*((u8*)(0x0010d010+4)) = 1;
+	return 0xf9610c02;
+}
+
+L_108794/i2cIR_readreg_x48
+returns the u8 read from register 0x48.
+
+L_1059a0/i2cIR_writeregs_x10_x78_x08_something1
+this is the last-func call in iru_thread before calling IRu_senddata.
+this writes value 0x7 to i2cIR reg 0x10, and writes value 0x2 to reg 0x78.
+val = *((u8*)(inr0+8));
+val2 = 0x2;
+if(val)val2 = 0x12;
+writes val2 to register 0x8.
+
+L_105a70/i2cIR_writeregs_x10_x78_x08_something0
+this is the last-func call in iru_thread before calling IRu_recvdata.
+this writes value 0x7 to i2cIR reg 0x10, and writes value 0x4 to reg 0x78.
+val = *((u8*)(inr0+8));
+val2 = 0x5;
+if(val)val2 = 0x15;
+writes val2 to register 0x8.
+
+L_105b3c/i2cIR_writeregs_x10_x10_x08_something
+this called at the start of i2cIR_setdatatransferend().
+this writes value 0x0 to i2cIR reg 0x10, then writes value 0x6 to reg 0x10.
+val = *((u8*)(inr0+8));
+val2 = 0x0;
+if(val)val2 = 0x10;
+writes val2 to register 0x8.
+
+L_105e44/i2cIR_readreg0_buf
+inr0=state inr1=buf inr2=size
+calls i2cipc_cmd12() with regaddr=0
+the data from this is the receieved IR data.
+
+L_10a800/i2cIR_writereg_x58
+inr0=state inr1=u8 val
+sets the IOState reg.
+
+L_10a814/i2cIR_writereg_x50
+inr0=state inr1=u8 val
+this writes to the IODir register.
+
+L_100818
+inr0=same input as L_105b90()
+this converts the input value to an actual bits-per-seconds value.
+executes a switch statement with inr0-3.
+3000 case10 val13
+6000 case9 val12
+9600 case8 val11
+12000 case7 val10
+18000 case6 val9
+24000 case5 val8
+36000 case4 val7
+48000 case3 val6
+72000 case2 val5
+96000 case1 val4
+115200 case0 val3
+57600 case11 val14
+38400 case12 val15
+19200 case13 val16
+7200 case14 val17
+4800 case15 val18
+
+L_104f04
+calls i2cIR_readreg0_buf
+also calls L_100914() with the buf for the above call.
+
+L_100914
+inr0=? inr1=recvbuf from i2cIR_readreg0_buf() inr2=bufsize inr3=u32*
+
+L_109380/main
+this registers service "ir:u" and "ir:USER". only one session can be open for either of these services, thus ir:u and ir:USER can't be used at the same time.
