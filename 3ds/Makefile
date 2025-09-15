@@ -6,10 +6,14 @@ ifeq ($(strip $(DEVKITARM)),)
 $(error "Please set DEVKITARM in your environment. export DEVKITARM=<path to>devkitARM")
 endif
 
+ifeq ($(strip $(LIBCTRU_DIR)),)
+$(error "Please set LIBCTRU_DIR in your environment. export LIBCTRU_DIR=<path to>libctru directory")
+endif
+
 TOPDIR ?= $(CURDIR)
 
 # Override the libctru to use own build
-CTRULIB := /Users/chungmcl/Projects/libctru/libctru
+LIBCTRU			:= $(LIBCTRU_DIR)/lib/libctru.a
 
 include $(DEVKITARM)/3ds_rules
 
@@ -35,10 +39,11 @@ include $(DEVKITARM)/3ds_rules
 #     - icon.png
 #     - <libctru folder>/default_icon.png
 #---------------------------------------------------------------------------------
-TARGET		:=	$(notdir $(CURDIR))
-BUILD		:=	build
+OUT_DIR   :=  out
+TARGET		:=	$(OUT_DIR)/pokewalker3ds
+BUILD			:=	build
 SOURCES		:=	source
-DATA		:=	data
+DATA			:=	data
 INCLUDES	:=	include
 GRAPHICS	:=	gfx
 GFXBUILD	:=	$(BUILD)
@@ -67,7 +72,7 @@ LIBS	:= -lctru -lm
 # list of directories containing libraries, this must be the top level containing
 # include and lib
 #---------------------------------------------------------------------------------
-LIBDIRS	:= $(CTRULIB)
+LIBDIRS	:= $(LIBCTRU_DIR)
 
 #---------------------------------------------------------------------------------
 # no real need to edit anything past this point unless you need to add additional
@@ -164,8 +169,12 @@ endif
 .PHONY: all clean
 
 #---------------------------------------------------------------------------------
-all: $(BUILD) $(GFXBUILD) $(DEPSDIR) $(ROMFS_T3XFILES) $(T3XHFILES)
-	@$(MAKE) --no-print-directory -C $(BUILD) -f $(CURDIR)/Makefile
+all: $(BUILD) $(GFXBUILD) $(DEPSDIR) $(ROMFS_T3XFILES) $(T3XHFILES) $(OUT_DIR)
+	@echo "Building libctru..."
+	@$(MAKE) -j -C $(LIBCTRU_DIR)
+	@echo "--------------------------------------------------"
+	@echo "Building $(TARGET)..."
+	@$(MAKE) -j --no-print-directory -C $(BUILD) -f $(CURDIR)/Makefile
 
 $(BUILD):
 	@mkdir -p $@
@@ -180,10 +189,14 @@ $(DEPSDIR):
 	@mkdir -p $@
 endif
 
+$(OUT_DIR):
+	@mkdir -p $@
+
 #---------------------------------------------------------------------------------
 clean:
 	@echo clean ...
-	@rm -fr $(BUILD) $(TARGET).3dsx $(OUTPUT).smdh $(TARGET).elf $(GFXBUILD)
+	@rm -fr $(BUILD) $(TARGET).3dsx $(OUTPUT).smdh $(TARGET).elf $(GFXBUILD) $(OUT_DIR)
+	@$(MAKE) -C $(LIBCTRU_DIR) clean
 
 #---------------------------------------------------------------------------------
 $(GFXBUILD)/%.t3x	$(BUILD)/%.h	:	%.t3s
@@ -197,11 +210,12 @@ else
 #---------------------------------------------------------------------------------
 # main targets
 #---------------------------------------------------------------------------------
+
 $(OUTPUT).3dsx	:	$(OUTPUT).elf $(_3DSXDEPS)
 
 $(OFILES_SOURCES) : $(HFILES)
 
-$(OUTPUT).elf	:	$(OFILES)
+$(OUTPUT).elf	:	$(OFILES) $(LIBCTRU)
 
 #---------------------------------------------------------------------------------
 # you need a rule like this for each extension you use as binary data
